@@ -29,8 +29,16 @@
     {{- fail "Langfuse requires valkey to be deployed with the `--maxmemory-policy noeviction` flag. Set redis.primary.extraFlags to include this flag to continue." -}}
 {{- end -}}
 
-{{- if and (not $.Values.redis.deploy) (not $.Values.redis.host) (not (include "langfuse.getEnvVar" (dict "env" $.Values.langfuse.additionalEnv "name" "REDIS_CONNECTION_STRING"))) -}}
-    {{- fail "Redis host must be configured when using an external Redis instance. Set redis.host to continue." -}}
+{{- $redisClusterEnabled := eq (include "langfuse.getEnvVar" (dict "env" $.Values.langfuse.additionalEnv "name" "REDIS_CLUSTER_ENABLED")) "true" -}}
+{{- $redisClusterNodes := include "langfuse.getEnvVar" (dict "env" $.Values.langfuse.additionalEnv "name" "REDIS_CLUSTER_NODES") -}}
+{{- $redisConnectionString := include "langfuse.getEnvVar" (dict "env" $.Values.langfuse.additionalEnv "name" "REDIS_CONNECTION_STRING") -}}
+
+{{- if and 
+    (not $.Values.redis.deploy) 
+    (not $.Values.redis.host) 
+    (not $redisConnectionString) 
+    (not (and $redisClusterEnabled $redisClusterNodes)) -}}
+    {{- fail "Redis host must be configured when using an external Redis instance. Set redis.host, REDIS_CONNECTION_STRING, or configure Redis cluster mode with REDIS_CLUSTER_ENABLED=true and REDIS_CLUSTER_NODES to continue." -}}
 {{- end -}}
 
 # Validate S3 settings
